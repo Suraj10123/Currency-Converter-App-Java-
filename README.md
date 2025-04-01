@@ -15,7 +15,7 @@ A simple Java console application to record purchase transactions and convert th
 
 - Java
 - Gradle
-- OpenExchangeRates API (or another free currency API)
+- OpenExchangeRates API 
 - CSV file storage that saves the transactions to a file called transactions.csv
 
 ## 🚀 Getting Started
@@ -24,7 +24,7 @@ A simple Java console application to record purchase transactions and convert th
 
 - Java 11 or higher
 - Gradle installed
-- Internet connection (for exchange rate API)
+- An active Internet connection (for exchange rate API)
 
 ### Build & Run
 
