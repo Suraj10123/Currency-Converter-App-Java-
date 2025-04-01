@@ -1,0 +1,17 @@
+plugins {
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // You don't need extra dependencies for this app
+}
+
+application {
+mainClass = 'CurrencyConverterApp'
+}
+
+
