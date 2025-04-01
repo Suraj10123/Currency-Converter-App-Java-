@@ -1,4 +1,6 @@
 import java.io.BufferedReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -8,31 +10,33 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class CurrencyConverterApp {
 
-    // Store transaction IDs starting from 1
+    // Counter for unique transaction IDs
     static AtomicInteger idCounter = new AtomicInteger(1);
-    // Store all transactions in memory using ID as key
+    
+    // Map to store transactions by ID
     static Map<Integer, PurchaseTransaction> transactions = new HashMap<>();
 
     public static void main(String[] args) throws Exception {
         Scanner scanner = new Scanner(System.in);
         System.out.flush();
-        // Welcome message for the Currency Converter Application
+
+        // Print welcome message and program description
         System.out.println("Welcome to Currency Converter!");
         System.out.println("This application allows you to:");
         System.out.println("- Add purchase transactions in USD");
         System.out.println("- Convert and retrieve transactions in other currencies");
         System.out.println();
 
-        // Main program loop
+        // Infinite loop for main menu
         while (true) {
-            // Display menu options
             System.out.println("1. Add Transaction");
             System.out.println("2. Retrieve Transaction in Another Currency");
             System.out.println("3. Exit");
-            int choice = scanner.nextInt();
-            scanner.nextLine(); // Clear the input buffer
 
-            // Process user choice
+            int choice = scanner.nextInt();
+            scanner.nextLine(); // clear buffer
+
+            // Handle user input
             switch (choice) {
                 case 1 -> addTransaction(scanner);
                 case 2 -> retrieveConvertedTransaction(scanner);
@@ -42,8 +46,8 @@ public class CurrencyConverterApp {
         }
     }
 
+    // Add a new purchase transaction
     static void addTransaction(Scanner scanner) {
-        // Get transaction description
         System.out.print("Description (max 50 chars): ");
         String desc = scanner.nextLine();
         if (desc.length() > 50) {
@@ -51,61 +55,69 @@ public class CurrencyConverterApp {
             return;
         }
 
-        // Get and validate transaction date
-        System.out.print("Transaction Date (YYYY-MM-DD): ");
-        String dateInput = scanner.nextLine();
-        LocalDate date;
-        try {
-            date = LocalDate.parse(dateInput);
-        } catch (Exception e) {
-            System.out.println("Invalid date.");
-            return;
-        }
-
-        // Get and validate transaction amount
         System.out.print("Amount in USD: ");
         double amount;
         try {
-            // Round to 2 decimal places
+            // Read and round amount
             amount = Math.round(scanner.nextDouble() * 100.0) / 100.0;
             if (amount <= 0) {
-                throw new IllegalArgumentException("Amount must be positive.");
+                System.out.println("Amount must be positive.");
+                return;
             }
         } catch (Exception e) {
             System.out.println("Invalid amount.");
             return;
         }
+        scanner.nextLine(); // clear newline
 
-        // Save the transaction
         int id = idCounter.getAndIncrement();
-        transactions.put(id, new PurchaseTransaction(id, desc, date, amount));
-        System.out.println("Transaction stored with ID: " + id);
+        LocalDate date = LocalDate.now();
+
+        // Create and save transaction
+        PurchaseTransaction transaction = new PurchaseTransaction(id, desc, date, amount);
+        transactions.put(id, transaction);
+        saveToCSV(transaction);
+
+        System.out.println("Transaction added successfully!");
     }
 
+    // Save a transaction to a CSV file
+    static void saveToCSV(PurchaseTransaction transaction) {
+        try (FileWriter writer = new FileWriter("transactions.csv", true)) {
+            writer.append(transaction.id + ",");
+            writer.append(transaction.description + ",");
+            writer.append(transaction.date.toString() + ",");
+            writer.append(String.valueOf(transaction.amount));
+            writer.append("\n");
+        } catch (IOException e) {
+            System.out.println("Error writing to CSV: " + e.getMessage());
+        }
+    }
+
+    // Retrieve and convert a transaction into a different currency
     static void retrieveConvertedTransaction(Scanner scanner) throws Exception {
-        // Get transaction ID
         System.out.print("Transaction ID: ");
         int id = scanner.nextInt();
         scanner.nextLine();
 
-        // Check if transaction exists
+        // Look up transaction by ID
         PurchaseTransaction txn = transactions.get(id);
         if (txn == null) {
             System.out.println("Transaction not found.");
             return;
         }
 
-        // Get target currency for conversion
+        // Ask user for target currency
         System.out.print("Target Currency Code (e.g., EUR, JPY): ");
         String target = scanner.nextLine().toUpperCase();
 
-        // Build API URL for exchange rate
+        // Build API request URL
         String rateApi = "https://api.exchangerate.host/" + txn.date + "?base=USD&symbols=" + target;
         URL url = new URL(rateApi);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
 
-        // Read API response
+        // Read response from API
         BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
         StringBuilder content = new StringBuilder();
         String inputLine;
@@ -114,7 +126,7 @@ public class CurrencyConverterApp {
         }
         in.close();
 
-        // Extract exchange rate from response
+        // Parse exchange rate from response JSON
         String response = content.toString();
         int startIndex = response.indexOf(target + ":") + target.length() + 1;
         int endIndex = response.indexOf("}", startIndex);
@@ -123,18 +135,18 @@ public class CurrencyConverterApp {
         // Calculate converted amount
         double converted = Math.round(txn.amount * rate * 100.0) / 100.0;
 
-        // Display transaction details
+        // Output transaction details
         System.out.printf("ID: %d\nDescription: %s\nDate: %s\nUSD: %.2f\nRate: %.4f\nConverted (%s): %.2f\n",
                 txn.id, txn.description, txn.date, txn.amount, rate, target, converted);
     }
 }
 
-// Class to store transaction details
+// Class to represent a purchase transaction
 class PurchaseTransaction {
-    int id;                  // Unique identifier
-    String description;      // Transaction description
-    LocalDate date;         // Transaction date
-    double amount;          // Amount in USD
+    int id;                  // Transaction ID
+    String description;      // Description of transaction
+    LocalDate date;          // Date of transaction
+    double amount;           // Amount in USD
 
     public PurchaseTransaction(int id, String description, LocalDate date, double amount) {
         this.id = id;
