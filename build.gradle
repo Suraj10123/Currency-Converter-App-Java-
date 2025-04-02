@@ -1,4 +1,5 @@
 plugins {
+    id 'java'
     id 'application'
 }
 
@@ -6,12 +7,20 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-    // You don't need extra dependencies for this app
-}
-
 application {
-mainClass = 'CurrencyConverterApp'
+    mainClass = 'CurrencyConverterApp'
+}
+jar {
+    manifest {
+        attributes 'Main-Class': 'CurrencyConverterApp'
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    archiveBaseName = 'CurrencyConverterApp'
+    destinationDirectory = file("$buildDir/libs")
 }
 
-
+run {
+    standardInput = System.in
+}
